@@ -21,12 +21,22 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Compiler en .exe (version portable, un seul fichier)
+      - name: Compiler en .exe (version normale, sans console)
         run: |
           pyinstaller --onefile --noconsole --name RecupFichiers recovery_app.py
 
-      - name: Publier l'exécutable
+      - name: Compiler en .exe (version debug, avec console pour voir les erreurs)
+        run: |
+          pyinstaller --onefile --name RecupFichiers-Debug recovery_app.py
+
+      - name: Publier l'exécutable (version normale)
         uses: actions/upload-artifact@v4
         with:
           name: RecupFichiers-Windows
           path: dist/RecupFichiers.exe
+
+      - name: Publier l'exécutable (version debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: RecupFichiers-Windows-Debug
+          path: dist/RecupFichiers-Debug.exe
