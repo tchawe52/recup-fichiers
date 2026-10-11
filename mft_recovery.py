@@ -175,6 +175,36 @@ def scanner_mft(lettre_lecteur, callback_progression=None, limite_entrees=None):
     return entrees
 
 
+def scanner_mft_stream(lettre_lecteur, stop_event=None, callback_progression=None, limite_entrees=None):
+    """
+    Version "flux" de scanner_mft : produit (yield) chaque entrée au fur et
+    à mesure de la lecture, au lieu d'attendre la fin du scan complet.
+    Permet un affichage en direct des résultats, et un arrêt anticipé via
+    stop_event (un threading.Event() ; mettre .set() pour interrompre).
+    """
+    chemin_disque = rf"\\.\{lettre_lecteur}:"
+    with open(chemin_disque, "rb") as disque:
+        infos = lire_secteur_boot(disque)
+        taille_record = infos["taille_record_mft"]
+        disque.seek(infos["offset_mft"])
+
+        numero = 0
+        while True:
+            if limite_entrees and numero >= limite_entrees:
+                break
+            if stop_event is not None and stop_event.is_set():
+                break
+            data = disque.read(taille_record)
+            if len(data) < taille_record:
+                break
+            entree = _analyser_enregistrement(data, numero, infos["octets_par_secteur"])
+            if entree is not None:
+                yield entree
+            numero += 1
+            if callback_progression and numero % 2000 == 0:
+                callback_progression(numero)
+
+
 def chemin_origine(entrees, entree, profondeur_max=40):
     """
     Reconstruit le chemin d'origine probable d'une entrée en remontant la
